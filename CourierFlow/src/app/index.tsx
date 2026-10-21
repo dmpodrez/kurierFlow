@@ -1,241 +1,423 @@
+import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
 import { useState } from "react";
-import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 
-type RouteStats = {
-  parcels: number;
-  delivered: number;
-  pending: number;
-  failed: number;
-};
-const routeStats: RouteStats = {
-  parcels: 42,
-  delivered: 31,
-  pending: 8,
-  failed: 3,
-};
-type ParcelStatus = "pending" | "delivered" | "failed";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
-type Parcel = {
-  id: number;
-  address: string;
-  status: ParcelStatus;
-};
-const parcels: Parcel[] = [
-  {
-    id: 1,
-    address: "Grunwaldzka 102",
-    status: "pending",
-  },
-  {
-    id: 2,
-    address: "Kołobrzeska 34",
-    status: "delivered",
-  },
-  {
-    id: 3,
-    address: "Długa 12",
-    status: "failed",
-  },
-];
-const todayEarnings: number = 320;
+import { useParcels } from "../context/ParcelsContext";
 
 export default function HomeScreen() {
+  const { parcels } = useParcels();
+
   const [isRouteActive, setIsRouteActive] = useState(false);
-  function handleStartRoute() {
-    setIsRouteActive(true);
-  }
-  function getStatusLabel(status: ParcelStatus): string {
-    if (status === "delivered") {
-      return "Delivered";
-    }
 
-    if (status === "failed") {
-      return "Failed";
-    }
+  const totalParcels = parcels.length;
 
-    return "Pending";
+  const deliveredCount = parcels.filter(
+    (parcel) => parcel.status === "delivered",
+  ).length;
+
+  const pendingCount = parcels.filter(
+    (parcel) => parcel.status === "pending",
+  ).length;
+
+  const failedCount = parcels.filter(
+    (parcel) => parcel.status === "failed",
+  ).length;
+
+  const nextDelivery = parcels.find((parcel) => parcel.status === "pending");
+
+  const todayEarnings = 320;
+
+  function handleRouteButton() {
+    setIsRouteActive((current) => !current);
   }
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>CourierFlow</Text>
-      <Text style={styles.greeting}>Good evening, Dmitry 👋</Text>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      showsVerticalScrollIndicator={false}
+    >
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.logo}>CourierFlow</Text>
+
+          <Text style={styles.greeting}>Good evening, Dmitry 👋</Text>
+        </View>
+
+        <Pressable style={styles.notificationButton}>
+          <Ionicons name="notifications-outline" size={23} color="#111111" />
+        </Pressable>
+      </View>
+
       {isRouteActive && (
         <View style={styles.activeBadge}>
-          <Text style={styles.activeText}>● ACTIVE</Text>
+          <View style={styles.activeDot} />
+
+          <Text style={styles.activeText}>ROUTE ACTIVE</Text>
         </View>
       )}
-      <View style={styles.routeCard}>
+
+      <View style={styles.statsCard}>
         <Text style={styles.sectionTitle}>TODAY&apos;S ROUTE</Text>
 
-        <Text style={styles.parcelCount}>{routeStats.parcels}</Text>
-        <Text style={styles.parcelLabel}>Parcels</Text>
+        <View style={styles.mainStats}>
+          <View>
+            <Text style={styles.bigNumber}>{totalParcels}</Text>
+
+            <Text style={styles.bigLabel}>Parcels</Text>
+          </View>
+
+          <View style={styles.earningsBlock}>
+            <Text style={styles.earnings}>{todayEarnings} PLN</Text>
+
+            <Text style={styles.earningsLabel}>Estimated earnings</Text>
+          </View>
+        </View>
+
+        <View style={styles.divider} />
 
         <View style={styles.statsRow}>
           <View style={styles.statItem}>
-            <Text style={styles.statNumber}>{routeStats.delivered}</Text>
-            <Text>Delivered</Text>
+            <View style={[styles.statusCircle, styles.deliveredCircle]}>
+              <Ionicons name="checkmark" size={16} color="#239A4B" />
+            </View>
+
+            <Text style={styles.statNumber}>{deliveredCount}</Text>
+
+            <Text style={styles.statLabel}>Delivered</Text>
           </View>
 
           <View style={styles.statItem}>
-            <Text style={styles.statNumber}>{routeStats.pending}</Text>
-            <Text>Pending</Text>
+            <View style={[styles.statusCircle, styles.pendingCircle]}>
+              <Ionicons name="time-outline" size={16} color="#D97706" />
+            </View>
+
+            <Text style={styles.statNumber}>{pendingCount}</Text>
+
+            <Text style={styles.statLabel}>Pending</Text>
           </View>
 
           <View style={styles.statItem}>
-            <Text style={styles.statNumber}>{routeStats.failed}</Text>
-            <Text>Failed</Text>
+            <View style={[styles.statusCircle, styles.failedCircle]}>
+              <Ionicons name="close" size={16} color="#D9363E" />
+            </View>
+
+            <Text style={styles.statNumber}>{failedCount}</Text>
+
+            <Text style={styles.statLabel}>Failed</Text>
           </View>
         </View>
       </View>
-      <View style={styles.earningsCard}>
-        <Text style={styles.sectionTitle}>TODAY&apos;S EARNINGS</Text>
 
-        <Text style={styles.earnings}>{todayEarnings} PLN</Text>
-      </View>
-      <Pressable style={styles.startButton} onPress={handleStartRoute}>
-        <Text style={styles.startButtonText}>
+      {nextDelivery && (
+        <>
+          <Text style={styles.blockTitle}>NEXT DELIVERY</Text>
+
+          <Pressable
+            style={styles.nextDeliveryCard}
+            onPress={() => router.push(`/delivery/${nextDelivery.id}`)}
+          >
+            <View style={styles.deliveryIcon}>
+              <Ionicons name="navigate" size={25} color="#111827" />
+            </View>
+
+            <View style={styles.deliveryInfo}>
+              <Text style={styles.deliveryAddress}>{nextDelivery.address}</Text>
+
+              <Text style={styles.deliveryCity}>
+                {nextDelivery.city}, {nextDelivery.postalCode}
+              </Text>
+
+              <View style={styles.deliveryMeta}>
+                <Text style={styles.parcelId}>Parcel #{nextDelivery.id}</Text>
+
+                <Text style={styles.distance}>{nextDelivery.distance} km</Text>
+              </View>
+            </View>
+
+            <Ionicons name="chevron-forward" size={21} color="#89919D" />
+          </Pressable>
+        </>
+      )}
+
+      <Pressable
+        style={[styles.routeButton, isRouteActive && styles.routeButtonActive]}
+        onPress={handleRouteButton}
+      >
+        <Ionicons
+          name={isRouteActive ? "pause-circle" : "navigate-circle"}
+          size={24}
+          color="#FFFFFF"
+        />
+
+        <Text style={styles.routeButtonText}>
           {isRouteActive ? "Route in progress" : "Start Route"}
         </Text>
       </Pressable>
-      <View style={styles.parcelsSection}>
-        <Text style={styles.sectionTitle}>DELIVERIES</Text>
 
-        {parcels.map((parcel) => (
-          <View key={parcel.id} style={styles.parcelCard}>
-            <View>
-              <Text style={styles.parcelAddress}>{parcel.address}</Text>
+      <Pressable
+        style={styles.allDeliveriesButton}
+        onPress={() => router.push("/deliveries")}
+      >
+        <Text style={styles.allDeliveriesText}>View all deliveries</Text>
 
-              <Text style={styles.parcelId}>Parcel #{parcel.id}</Text>
-            </View>
-
-            <Text style={styles.parcelStatus}>
-              {getStatusLabel(parcel.status)}
-            </Text>
-          </View>
-        ))}
-      </View>
-    </View>
+        <Ionicons name="arrow-forward" size={18} color="#111111" />
+      </Pressable>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 24,
     backgroundColor: "#F5F7FA",
   },
 
-  title: {
-    fontSize: 32,
-    fontWeight: "700",
-    marginTop: 60,
+  content: {
+    paddingHorizontal: 20,
+    paddingTop: 65,
+    paddingBottom: 120,
+  },
+
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+
+  logo: {
+    fontSize: 30,
+    fontWeight: "800",
   },
 
   greeting: {
-    fontSize: 18,
-    marginTop: 12,
+    marginTop: 7,
+    fontSize: 15,
+    color: "#505866",
   },
-  routeCard: {
-    marginTop: 32,
+
+  notificationButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: "#FFFFFF",
-    padding: 24,
-    borderRadius: 20,
-  },
-
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: "600",
-  },
-
-  parcelCount: {
-    fontSize: 48,
-    fontWeight: "700",
-    marginTop: 20,
-  },
-
-  parcelLabel: {
-    fontSize: 16,
-  },
-
-  statsRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 32,
-  },
-
-  statItem: {
     alignItems: "center",
+    justifyContent: "center",
   },
 
-  statNumber: {
-    fontSize: 24,
-    fontWeight: "700",
-  },
-  earningsCard: {
-    marginTop: 16,
-    backgroundColor: "#FFFFFF",
-    padding: 24,
-    borderRadius: 20,
-  },
-
-  earnings: {
-    fontSize: 32,
-    fontWeight: "700",
-    marginTop: 12,
-  },
-
-  startButton: {
-    marginTop: 24,
-    backgroundColor: "#111111",
-    paddingVertical: 18,
-    borderRadius: 16,
-    alignItems: "center",
-  },
-
-  startButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
-  },
   activeBadge: {
     alignSelf: "flex-start",
-    marginTop: 16,
-    backgroundColor: "#E8F7EE",
-    paddingHorizontal: 12,
-    paddingVertical: 7,
+    marginTop: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#E6F7EC",
+    paddingHorizontal: 13,
+    paddingVertical: 8,
     borderRadius: 20,
+  },
+
+  activeDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#239A4B",
+    marginRight: 8,
   },
 
   activeText: {
     fontSize: 12,
     fontWeight: "700",
-  },
-  parcelsSection: {
-    marginTop: 32,
+    color: "#239A4B",
   },
 
-  parcelCard: {
-    marginTop: 12,
+  statsCard: {
+    marginTop: 24,
     backgroundColor: "#FFFFFF",
-    padding: 18,
-    borderRadius: 16,
+    padding: 20,
+    borderRadius: 22,
+  },
+
+  sectionTitle: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#737B88",
+    letterSpacing: 0.7,
+  },
+
+  mainStats: {
+    marginTop: 20,
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "flex-end",
+  },
+
+  bigNumber: {
+    fontSize: 46,
+    fontWeight: "800",
+  },
+
+  bigLabel: {
+    marginTop: -3,
+    fontSize: 15,
+    color: "#737B88",
+  },
+
+  earningsBlock: {
+    alignItems: "flex-end",
+  },
+
+  earnings: {
+    fontSize: 28,
+    fontWeight: "800",
+  },
+
+  earningsLabel: {
+    marginTop: 3,
+    fontSize: 12,
+    color: "#737B88",
+  },
+
+  divider: {
+    height: 1,
+    backgroundColor: "#EDF0F4",
+    marginVertical: 20,
+  },
+
+  statsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+
+  statItem: {
+    flex: 1,
     alignItems: "center",
   },
 
-  parcelAddress: {
-    fontSize: 16,
-    fontWeight: "600",
+  statusCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 7,
+  },
+
+  deliveredCircle: {
+    backgroundColor: "#E6F7EC",
+  },
+
+  pendingCircle: {
+    backgroundColor: "#FFF1E3",
+  },
+
+  failedCircle: {
+    backgroundColor: "#FDE8E8",
+  },
+
+  statNumber: {
+    fontSize: 20,
+    fontWeight: "800",
+  },
+
+  statLabel: {
+    marginTop: 2,
+    fontSize: 12,
+    color: "#737B88",
+  },
+
+  blockTitle: {
+    marginTop: 28,
+    marginBottom: 10,
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#737B88",
+    letterSpacing: 0.7,
+  },
+
+  nextDeliveryCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 18,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  deliveryIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+    backgroundColor: "#F2F5FA",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  deliveryInfo: {
+    flex: 1,
+    marginLeft: 14,
+  },
+
+  deliveryAddress: {
+    fontSize: 17,
+    fontWeight: "700",
+  },
+
+  deliveryCity: {
+    marginTop: 3,
+    color: "#7B8492",
+  },
+
+  deliveryMeta: {
+    flexDirection: "row",
+    marginTop: 9,
+    gap: 14,
   },
 
   parcelId: {
     fontSize: 12,
-    marginTop: 4,
+    color: "#737B88",
   },
 
-  parcelStatus: {
-    fontSize: 13,
+  distance: {
+    fontSize: 12,
+    color: "#737B88",
+  },
+
+  routeButton: {
+    marginTop: 24,
+    height: 58,
+    borderRadius: 17,
+    backgroundColor: "#111111",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+  },
+
+  routeButtonActive: {
+    backgroundColor: "#239A4B",
+  },
+
+  routeButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
     fontWeight: "700",
+  },
+
+  allDeliveriesButton: {
+    marginTop: 12,
+    height: 52,
+    borderRadius: 17,
+    backgroundColor: "#FFFFFF",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+
+  allDeliveriesText: {
+    fontSize: 15,
+    fontWeight: "600",
   },
 });
